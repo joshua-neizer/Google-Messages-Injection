@@ -1,6 +1,5 @@
-# Google's Messages for Web Coloured Messages Injection
+# Google's Messages for Web: Coloured Messages Injection
 ### **Creator:** Joshua Neizer
-<br/>
 
 ## Overview
 This is a simple Javascript program that allows the Google's Messages for Web
