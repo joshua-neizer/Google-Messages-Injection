@@ -9,6 +9,7 @@ const messagesTheme = "light";
 // Constant strings
 const payloadName = '--xms-outgoing-bg-color';
 const listElementName = 'mws-conversation-list-item';
+const messageElementName = 'mws-message-part-content';
 const defaultColour = messagesTheme === "light" ? '#ecf3fe' : "#7cacf8";
 const opacityHex = unitToHexadecimal(opacityPercent);
 
@@ -20,6 +21,31 @@ const createHTML = (string) => trustedTypes.createPolicy("forceInner", {
 
 // Variable instantiation
 var currentColour, payloadString, payloadElement, payloadIndex;
+
+/**
+ * Waits for an element to be loaded before running code;
+ * @param {string} selector The name of the selector to wait for 
+ * @returns {Promise} The resolved promise waiting for the element
+ */
+function waitForElement(selector) {
+    return new Promise(resolve => {
+        if (document.querySelector(selector)) {
+            return resolve(document.querySelector(selector));
+        }
+
+        const observer = new MutationObserver(mutations => {
+            if (document.querySelector(selector)) {
+                resolve(document.querySelector(selector));
+                observer.disconnect();
+            }
+        });
+
+        observer.observe(document.body, {
+            childList: true,
+            subtree: true
+        });
+    });
+}
 
 /**
  * Calls an error to the console
@@ -170,7 +196,7 @@ function getStyleTag(){
     for (var element of document.getElementsByTagName('style')){
         payloadIndex = element.innerHTML.indexOf(payloadString);
         if (payloadIndex != -1){
-            console.log("Payload Stored!")
+            console.log("Payload Stored!");
             return [element, payloadIndex];
         }
     }
@@ -188,7 +214,6 @@ function getStyleTag(){
  */
 function updateBackgroundColour(colour){
     var leftSubstring, rightSubString;
-
     if (!payloadElement || !payloadIndex){
         [payloadElement, payloadIndex] = getStyleTag();
     }
@@ -271,4 +296,5 @@ function main(){
         setColours(document.querySelector(listElementName));
 }
 
-main();
+// Waits for the messages element to load before running main
+waitForElement(messageElementName).then(() => main());

@@ -1,0 +1,21 @@
+{
+    "manifest_version": 3,
+    "name": "Coloured Google Messages",
+    "version": "1.0",
+    "description": "Makes the outgoing colour for SMS messages coloured",
+
+    "icons": {
+      "16": "images/icon.png",
+      "32": "images/icon.png",
+      "48": "images/icon.png",
+      "128": "images/icon.png"
+    },
+    "content_scripts": [
+      {
+        "js": ["scripts/content.js"],
+        "matches": [
+          "https://messages.google.com/web/conversations/*"
+        ]
+      }
+    ]
+  }
