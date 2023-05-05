@@ -2,7 +2,7 @@
 const brighteningPercentage = 100;
 const gradientRatio = 1.2;
 const gradientOn = false;
-const opacityPercent = 0.5;
+const opacityPercent = 0.25;
 const colourSelectionProcess = "from-avatar";
 const messagesTheme = "light";
 
