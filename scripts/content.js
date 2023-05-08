@@ -7,10 +7,9 @@ const colourSelectionProcess = "from-avatar";
 const messagesTheme = "light";
 
 // Constant strings
-const payloadName = '--xms-outgoing-bg-color';
+
 const listElementName = 'mws-conversation-list-item';
 const messageElementName = 'mws-message-part-content';
-const defaultColour = messagesTheme === "light" ? '#ecf3fe' : "#7cacf8";
 const opacityHex = unitToHexadecimal(opacityPercent);
 
 // Constant anonymous functions
@@ -20,7 +19,20 @@ const createHTML = (string) => trustedTypes.createPolicy("forceInner", {
     }).createHTML(string);
 
 // Variable instantiation
-var currentColour, payloadString, payloadElement, payloadIndex;
+var payloadData = {
+    '--xms-outgoing-bg-color' : {
+        colour : messagesTheme === "light" ? '#ecf3fe' : "#7cacf8", 
+        element : null,
+        index : null,
+        string : null
+    },
+    '--button-active-color' : {
+        colour : "#1a73e8", 
+        element : null,
+        index : null,
+        string : null
+    } 
+};
 
 /**
  * Waits for an element to be loaded before running code;
@@ -186,22 +198,25 @@ function brightenColour(hexColour, magnitude) {
 }
 
 /**
- * Finds the style tag that has the payload
- * @returns {[Object, number]} The payload DOM element and the index of where 
- * the payload is in the element
+ * Finds the style tag that has the target variable and updates payload element and index
+ * @param {string} name The name of the variable that is to be changed
+ * @param {Object} payload The payload data for the variable
  */
-function getStyleTag(){
+function getStyleTag(name, payload){
     var payloadIndex;
+    payload.string = payload.string ? payload.string : createColourCSS(name, payload.colour);
     
     for (var element of document.getElementsByTagName('style')){
-        payloadIndex = element.innerHTML.indexOf(payloadString);
+        payloadIndex = element.innerHTML.indexOf(payload.string);
         if (payloadIndex != -1){
-            console.log("Payload Stored!");
-            return [element, payloadIndex];
+            console.log(`Payload for ${name} Stored!`);
+            payload.index = payloadIndex;
+            payload.element = element;
+            return payload;
         }
     }
-    
-    callError("Can't find payload")
+
+    callError(`Can't find payload for ${name}`)
 }
 
 /**
@@ -214,15 +229,20 @@ function getStyleTag(){
  */
 function updateBackgroundColour(colour){
     var leftSubstring, rightSubString;
-    if (!payloadElement || !payloadIndex){
-        [payloadElement, payloadIndex] = getStyleTag();
+
+    for (var name in payloadData){
+        if (payloadData [name].index === null || payloadData [name].element === null){
+            payloadData [name] = getStyleTag(name, payloadData [name]);
+        }
+
+        leftSubstring  = payloadData [name].element.innerHTML.substring(0, payloadData [name].index);
+        rightSubString = payloadData [name].element.innerHTML.substring(payloadData [name].index + payloadData [name].string.length);
+
+        payloadData [name].colour = name.includes("button") ? colour.slice(0, -2) : colour;
+        payloadData [name].string = createColourCSS(name, payloadData [name].colour);
+
+        payloadData [name].element.innerHTML = createHTML(leftSubstring + payloadData [name].string  + rightSubString);
     }
-
-    leftSubstring = payloadElement.innerHTML.substring(0, payloadIndex);
-    rightSubString = payloadElement.innerHTML.substring(payloadIndex + payloadString.length);
-
-    payloadElement.innerHTML = createHTML(leftSubstring + createColourCSS(payloadName, colour) + rightSubString);
-    setData(colour);
 }
 
 /**
@@ -263,20 +283,10 @@ function setColours(element){
 }
 
 /**
- * Updates the current colour global variables
- * @param {string} colour The colour to update the global variables with
- */
-function setData(colour){
-    currentColour = colour;
-    payloadString = createColourCSS(payloadName, colour);
-}
-
-/**
  * The initial call to to set the colour and attach event listeners on conversation
  * DOM elements to update the colour when selected
  */
 function main(){
-    setData(defaultColour);
     var colourSet = false;
     for (var element of document.querySelectorAll(listElementName)){
         element.addEventListener('click', function() {
