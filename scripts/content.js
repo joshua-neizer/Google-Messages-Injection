@@ -4,10 +4,8 @@ const gradientRatio = 1.2;
 const gradientOn = false;
 const opacityPercent = 0.25;
 const colourSelectionProcess = "from-avatar";
-const messagesTheme = "light";
 
 // Constant strings
-
 const listElementName = 'mws-conversation-list-item';
 const messageElementName = 'mws-message-part-content';
 const opacityHex = unitToHexadecimal(opacityPercent);
@@ -19,20 +17,8 @@ const createHTML = (string) => trustedTypes.createPolicy("forceInner", {
     }).createHTML(string);
 
 // Variable instantiation
-var payloadData = {
-    '--xms-outgoing-bg-color' : {
-        colour : messagesTheme === "light" ? '#ecf3fe' : "#7cacf8", 
-        element : null,
-        index : null,
-        string : null
-    },
-    '--button-active-color' : {
-        colour : "#1a73e8", 
-        element : null,
-        index : null,
-        string : null
-    } 
-};
+var messagesTheme, payloadData;
+
 
 /**
  * Waits for an element to be loaded before running code;
@@ -198,25 +184,52 @@ function brightenColour(hexColour, magnitude) {
 }
 
 /**
+ * Finds all occurrences of a search string within a target string
+ * @param {string} searchStr The string to search for
+ * @param {string} str The string to search through
+ * @param {boolean} caseSensitive Whether the search should be case sensitive
+ * @returns {number[]} Array of indices 
+ */
+function getIndicesOf(searchStr, str, caseSensitive) {
+    var searchStrLen = searchStr.length;
+    if (searchStrLen == 0) {
+        return [];
+    }
+    var startIndex = 0, index, indices = [];
+    if (!caseSensitive) {
+        str = str.toLowerCase();
+        searchStr = searchStr.toLowerCase();
+    }
+    while ((index = str.indexOf(searchStr, startIndex)) > -1) {
+        indices.push(index);
+        startIndex = index + searchStrLen;
+    }
+    return indices;
+}
+
+/**
  * Finds the style tag that has the target variable and updates payload element and index
  * @param {string} name The name of the variable that is to be changed
  * @param {Object} payload The payload data for the variable
  */
 function getStyleTag(name, payload){
-    var payloadIndex;
+    var payloadIndices;
     payload.string = payload.string ? payload.string : createColourCSS(name, payload.colour);
     
     for (var element of document.getElementsByTagName('style')){
-        payloadIndex = element.innerHTML.indexOf(payload.string);
-        if (payloadIndex != -1){
-            console.log(`Payload for ${name} Stored!`);
-            payload.index = payloadIndex;
-            payload.element = element;
-            return payload;
+        payloadIndices = getIndicesOf(payload.string, element.innerHTML);
+        if (payloadIndices.length > 0){
+            payload.indices.push(payloadIndices);
+            payload.elements.push(element);
         }
     }
 
-    callError(`Can't find payload for ${name}`)
+    if (payload.elements.length > 0)
+        console.log(`Payload for ${name} Stored!`);
+    else
+        callError(`Can't find payload for ${name}`)
+
+    return payload
 }
 
 /**
@@ -231,17 +244,21 @@ function updateBackgroundColour(colour){
     var leftSubstring, rightSubString;
 
     for (var name in payloadData){
-        if (payloadData [name].index === null || payloadData [name].element === null){
+        if (payloadData [name].indices.length === 0 || payloadData [name].elements.length === 0)
             payloadData [name] = getStyleTag(name, payloadData [name]);
+        
+        for (var elementIndex in payloadData [name].elements){
+            var element = payloadData [name].elements [elementIndex]
+            for (var index of payloadData [name].indices [elementIndex]){
+                leftSubstring  = element.innerHTML.substring(0, index);
+                rightSubString = element.innerHTML.substring(index + payloadData [name].string.length);
+        
+                payloadData [name].colour = payloadData [name].replace ? payloadData [name].replace : (name.includes("button") ? colour.slice(0, -2) : colour);
+                payloadData [name].string = createColourCSS(name, payloadData [name].colour);
+            }
+
+            element.innerHTML = createHTML(leftSubstring + payloadData [name].string  + rightSubString);
         }
-
-        leftSubstring  = payloadData [name].element.innerHTML.substring(0, payloadData [name].index);
-        rightSubString = payloadData [name].element.innerHTML.substring(payloadData [name].index + payloadData [name].string.length);
-
-        payloadData [name].colour = name.includes("button") ? colour.slice(0, -2) : colour;
-        payloadData [name].string = createColourCSS(name, payloadData [name].colour);
-
-        payloadData [name].element.innerHTML = createHTML(leftSubstring + payloadData [name].string  + rightSubString);
     }
 }
 
@@ -287,6 +304,32 @@ function setColours(element){
  * DOM elements to update the colour when selected
  */
 function main(){
+    // Sets theme
+    messagesTheme = getComputedStyle(document.querySelector("mw-conversation-container")).getPropertyValue("--conv-container-host-bg-color") === '#202124' ? "dark" : "light";
+    
+    // Sets the default payload information
+    payloadData = {
+        '--xms-outgoing-bg-color' : {
+            colour : messagesTheme === "light" ? '#ecf3fe' : "#7cacf8", 
+            elements : [],
+            indices : [],
+            string : null
+        },
+        '--button-active-color' : {
+            colour : "#1a73e8", 
+            elements : [],
+            indices : [],
+            string : null
+        },
+        '--xms-outgoing-color' : {
+            colour : "#202124", 
+            elements : [],
+            indices : [],
+            string : null,
+            replace : messagesTheme === "light" ? "#202124" : '#ffffffd6'
+        } 
+    }
+
     var colourSet = false;
     for (var element of document.querySelectorAll(listElementName)){
         element.addEventListener('click', function() {

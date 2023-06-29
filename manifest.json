@@ -1,7 +1,7 @@
 {
     "manifest_version": 3,
     "name": "Coloured Google Messages",
-    "version": "1.0",
+    "version": "1.1",
     "description": "Makes the outgoing colour for SMS messages coloured",
 
     "icons": {
